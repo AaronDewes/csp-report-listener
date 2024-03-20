@@ -292,7 +292,7 @@
       }
       function login() {
         apiToken = document.getElementById("api-token-input").value;
-        fetch("/api/verify", { headers: { authorization: apiToken } }).then((e) => {
+        fetch("/csp-reports/api/verify", { headers: { authorization: apiToken } }).then((e) => {
           setApiToken(apiToken);
           fetchDistinctReports();
           fetchViolationCount();
@@ -312,7 +312,7 @@
       function newApiToken() {
         apiToken = document.getElementById("api-secret-input").value;
         fetch(
-          "/api/gen-token",
+          "/csp-reports/api/gen-token",
           { method: "POST", headers: { authorization: apiToken } }
         ).then(async (e) => {
           var token = await e.text();
@@ -330,7 +330,7 @@
         let offset = (window.state.page - 1) * window.state.limit;
         document.getElementById("page-number").innerHTML = `Page ${window.state.page}`;
         fetch(
-          `/api/distinct-reports?limit=${window.state.limit}&offset=${offset}`,
+          `/csp-reports/api/distinct-reports?limit=${window.state.limit}&offset=${offset}`,
           { method: "GET", headers: { authorization: window.state.apiToken } }
         ).then(async (e) => {
           if (e.status == 401) {
@@ -358,7 +358,7 @@
         document.getElementById("settings-container").classList.add("hidden")
       }
       function deleteApiKey(id) {
-        fetch(`/api/token/${id}`, {
+        fetch(`/csp-reports/api/token/${id}`, {
           method: "DELETE",
           headers: { authorization: window.state.apiToken}
         })
@@ -381,7 +381,7 @@
           })
       }
       function fetchApiKeys() {
-        fetch("/api/tokens", {
+        fetch("/csp-reports/api/tokens", {
           method: "GET",
           headers: { authorization: window.state.apiToken }
         })
@@ -404,7 +404,7 @@
           })
       }
       function fetchViolationCount() {
-        fetch("/api/violation-count", {
+        fetch("/csp-reports/api/violation-count", {
           method: "GET",
           headers: { authorization: window.state.apiToken },
         })
