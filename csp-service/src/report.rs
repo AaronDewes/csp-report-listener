@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{self, State},
     http::StatusCode,
     Json,
 };
@@ -94,53 +94,14 @@ pub struct GetDistinctReportQueryParams {
     pub offset: Option<u32>,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Json<T>(pub T);
-
-impl<T, S, B> FromRequest<S, B> for Json<T>
-where
-    T: DeserializeOwned,
-    B: HttpBody + Send + 'static,
-    B::Data: Send,
-    B::Error: Into<BoxError>,
-    S: Send + Sync,
-{
-    type Rejection = JsonRejection;
-
-    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
-        let bytes = Bytes::from_request(req, state).await?;
-        let deserializer = &mut serde_json::Deserializer::from_slice(&bytes);
-
-        let value = match serde_path_to_error::deserialize(deserializer) {
-            Ok(value) => value,
-            Err(err) => {
-                let rejection = match err.inner().classify() {
-                    serde_json::error::Category::Data => JsonDataError::from_err(err).into(),
-                    serde_json::error::Category::Syntax | serde_json::error::Category::Eof => {
-                        JsonSyntaxError::from_err(err).into()
-                    }
-                    serde_json::error::Category::Io => {
-                        if cfg!(debug_assertions) {
-                            // we don't use `serde_json::from_reader` and instead always buffer
-                            // bodies first, so we shouldn't encounter any IO errors
-                            unreachable!()
-                        } else {
-                            JsonSyntaxError::from_err(err).into()
-                        }
-                    }
-                };
-                return Err(rejection);
-            }
-        };
-
-        Ok(Json(value))
-    }
-}
-
 pub async fn report_csp(
-    Json(payload): Json<ReportPayload>,
+    body: String,
 ) -> Result<&'static str, (StatusCode, String)> {
     let source_ip = "".to_owned();
+    let payload: ReportPayload = serde_json::from_str(&body).map_err(|e| {
+        error!("Error parsing JSON: {}", e);
+        (StatusCode::BAD_REQUEST, "Error parsing JSON".to_owned())
+    })?;
     let report = payload.csp_report;
     if let Ok(ref mut buf_write) = REPORT_BUFFER.try_write() {
         buf_write.push(BufferItem {
